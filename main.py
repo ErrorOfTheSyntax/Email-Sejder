@@ -14,9 +14,9 @@ import signal
 
 class UserOptions:
     def __init__(self):
-        self.email_sender = "EmailName@gmail.com"
+        self.email_sender = "EmailSender@gmail.com"
         self.email_password = "EmailPassword"
-        self.email_receivers = ["enter@emails.com"]
+        self.email_receivers = ["targetEmails@gmail.com"]
         self.subject = "REQUIRED"
         self.body = "REQUIRED"
         self.amount_send = 1
@@ -28,15 +28,19 @@ class UserOptions:
         self.display_error = ""
         self.responses = ""
         
-        
-        
-    def down_by_one(self, arr):
-        for i in range(len(arr)):
-            arr[i] = int(arr[i]) - 1
-
+    #Stops the program if it is called
     def stop_program(self):
         self.loop = False
 
+    #This function adds targets to the array called "email_reveivers"
+    #It looks in the array for "," as that is the way of seperating emails
+    #If "," isnt in the email given, then only one email will be added (that one)
+    #If "," is in the email, it splits the email at each point "," is found
+    #This splits each email into their own index within the email_list array
+    #It then loops through the email_list and adds them to the email_receiverse
+    #It checks each email to check if it matches the regex pattern
+    #If it is a full match, then it is added to the email_receiverse
+    
     def add_target(self, email):
         if "," in email:
             email_list = email.split(",")
@@ -59,9 +63,15 @@ class UserOptions:
             else:
                 self.display_error = f"Invalid Email Addres(s) [{email}]"
 
+    #Simple function that changes the amount of time the email will be sent
     def change_amount(self, amount):
         self.amount_send = int(amount)
 
+    #This function removes emails from the email_receivers list
+    #The user can specify individual indexes e.g 0,1 and it will remove them
+    #The user can also remove all items from a certain point
+    #e.g 2:
+    
     def remove_target(self, indexes):
         if ":" in indexes:
             indexOfColon = indexes.index(":")
@@ -78,21 +88,34 @@ class UserOptions:
         except ValueError:
             pass
 
-
+    #This funciton simply changes the body of the email
+    
     def change_body(self, new_body):
         self.body = new_body
         self.display_body = f"Body of email: {self.body}"
-
+    
+    #Basically in the message that is displayed in the screen, I onlt want to
+    #display the body if the user wants to so the display_body variable is "" untill this function is called
+    
     def display_body_email(self):
         self.display_body = f"Body of email: {self.body}"
 
+    #This function simply changes the subject of the email
+    
     def change_subject(self, new_subject):
         self.subject = new_subject
         self.display_subject = f"Subject of email: {self.subject}"
-
+        
+    #Basically in the message that is displayed in the screen, I onlt want to
+    #display the subject if the user wants to so the display_subject variable is "" untill this function is called
+    
     def display_subject_email(self):
         self.display_subject = f"Subject of email: {self.subject}"
 
+    #This loops through the email list given in the choice variable
+    #It used smtp to send the email from the email_sender account
+    #It loggs in using the email_password
+    
     def send_emails(self,choice=None):
         self.send = True
         self.loop = False
@@ -114,7 +137,11 @@ class UserOptions:
                 with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=context) as smtp:
                     smtp.login(self.email_sender, self.email_password)
                     smtp.sendmail(self.email_sender, receiver, email_msg.as_string())
-        
+    
+    #This function checks if there are any new emails in the inbox of the email sender
+    #If not it will simple check again
+    #If there is a new email it will display it and stop checking
+    
     def check_mail(self):
         self.responses = checkEmail()
         print("Awating an email response.")
@@ -124,9 +151,18 @@ class UserOptions:
             else:
                 print(f"Email response: {self.responses}")
                 break
+            
+    #This stops the thread that checks for a response.
+    
     def stop_checking_mail(self):
         self.stop_checking_mail = True
         
+    #This uses threds to check the inbox of the email sender.
+    #It constantly runs the check_mail function in the background.
+    #Only if an email is found will it display anything.
+    #If there is a new email it will display it and stop checking.
+    #The user can also stop the thread using a keyboard Interrupt.
+    
     def response(self):
         emailThread = threading.Thread(target=self.check_mail)
         emailThread.start()
@@ -137,10 +173,10 @@ class UserOptions:
             self.stop_checking_mail()
             print("Stopping email checking.")
             os.kill(os.getpid(), signal.SIGINT)
-            
             quit()
             
-            
+    #This is simple message outlining what the program can do.
+    
     def displayInfo(self):
         os.system("cls")
         helpMenue = input("""THIS PROGRAM IS USED FOR SENDING EMAILS
@@ -149,15 +185,43 @@ Using the -x options, sends an email and then using a thread waits for a respons
 This is just a test project so nothing serouus.
 
 To exit this help menue press enter""")
+        
+    #This funciton find the indexes at which the target is found and adds that to a list
+
     def find_indexes(self,input_str, target):
         indexes = []
         for index, char in enumerate(input_str):
             if char == target:
                 indexes.append(index)
         return indexes
-        commandList = inputString.split("-")
-        commandList = [email.strip() for email in commandList]; del(commandList)[0]
-        commandList = [f"-{item}" for item in commandList]
+    
+    #This funciton takes in a stirng which is the users input/choice
+    #This function loops through and splits each command within the input
+    #This is done by splitting where there is a " -" in the input
+    #It then returns a new list with all the individual commands 
+    #They can then be looped through and executed
+    
+    def split_commands(self, input_str):
+            commands = []
+            current_command = ""
+            words = input_str.split()
+            
+            for word in words:
+                if word.startswith('-'):
+                    if current_command:
+                        commands.append(current_command)
+                    current_command = word
+                else:
+                    current_command += " " + word
+            
+            if current_command:
+                commands.append(current_command)
+            
+            return commands
+        
+    #These are all the options the user can select
+    #They then execute the appropriate function based on the choice given
+    
     def options(self,choice):
         if choice.startswith("-attack"):
                     
@@ -192,12 +256,14 @@ To exit this help menue press enter""")
         elif choice.startswith("-s"):
             self.display_subject_email()
         elif choice.startswith("-x"):
-            self.send_emails()
+            self.send_emails(choice=choice[3:])
             print("Emails sent successfully")
             self.response()
             
         elif choice.startswith("--help") or choice.startswith("-h"):
             self.displayInfo()
+    
+    #Displays the menue and all the possible commands
     
     def run(self):
     
@@ -230,10 +296,10 @@ Current email amount = {self.amount_send}
 """)            
                 
                 if len(self.find_indexes(choice,"-")) > 1:
-                    commandList = choice.split("-")
-                    print(commandList)
-                    for command in commandList[1:]:
-                        self.options(f"-{command.strip()}")
+                    commandList = self.split_commands(choice)
+                    
+                    for command in commandList:
+                        self.options(command)
                     
                 else:
                     self.options(choice)
